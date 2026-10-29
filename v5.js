@@ -200,6 +200,71 @@ function finishStep() {
     .then(v => { if (v === 'again') startStep(u, step); else if (v === 'next' && nextStep) startStep(u, nextStep.step); else if (step === 'dr') openTower(); else openUnit(u); });
 }
 
+/* ---------- เข้าสู่ระบบให้เร็วขึ้น ----------
+ * - ไม่ต้องรอ getBoot (ยิงพร้อมกันตอนเปิดหน้า) login ส่งค่าตั้งค่ามาด้วย
+ * - เก็บชุดฝึกไว้ในเครื่อง ถ้ารุ่นตรงกับในชีต เซิร์ฟเวอร์ไม่ต้องส่งซ้ำ */
+async function doLogin() {
+  const id = $('#sid').value.trim();
+  if (!id) { frame('bad'); toast('กรอกรหัสประจำตัวนักเรียนก่อน'); $('#sid').focus(); return; }
+  const btn = $('#btn-login'), label = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="lg-spin"></span> กำลังเปิดประตูหอไตร…';
+  try {
+    const r = await rpcRetry('login', [id, store('packVer') || ''], 2);
+    if (r && r.reason === 'NOT_FOUND') {
+      const tc = await rpcRetry('verifyTeacherCode', [id], 2);
+      if (tc && tc.ok) { frame('ok'); $('#sid').value = ''; sidDots(); Teacher.enter(id); return; }
+      frame('bad'); SFX.bad();
+      $('#login-say').innerHTML = 'ไม่พบรหัส <b>' + esc(id) + '</b> ในทะเบียน ตรวจตัวเลขอีกครั้ง หรือแจ้งครูประจำวิชา';
+      return;
+    }
+    if (!r || !r.ok) throw new Error(r && (r.msg || r.reason));
+    if (r.cfg) { APP.cfg = r.cfg; APP.voice = r.cfg.voice || APP.voice; }
+    if (r.today) APP.today = r.today;
+    if (r.packSame) r.pack = store('pack');
+    else if (r.pack && r.packVer) { store('pack', r.pack); store('packVer', r.packVer); }
+    if (!r.pack) store('packVer', '');   // เครื่องไม่มีชุดฝึก (เช่น ล้างเบราว์เซอร์) enterAs จะโหลดใหม่ให้
+    store('sid', id);
+    if (id[0] !== '#') store('me', { id, name: r.student.name });
+    frame('ok'); SFX.pass();
+    await enterAs(id, r);
+  } catch (e) { frame('bad'); toast('เข้าสู่ระบบไม่สำเร็จ: ' + (e.message || e)); }
+  finally { btn.disabled = false; btn.innerHTML = label; }
+}
+
+/* ---------- ด่านวัดผล/สอบ: ไปข้อถัดไปทันที ส่งคำตอบตามลำดับอยู่เบื้องหลัง ---------- */
+async function sendAnswer(pick) {
+  if (T.busy) return;
+  clearInterval(T.tick);
+  T.q = T.q || [];
+  T.q.push([T.idx, pick]); T.idx++;
+  flushAnswers();
+  renderTest();
+}
+async function flushAnswers() {
+  if (T.flushing) return;
+  T.flushing = true; setSync('busy');
+  try {
+    while (T.q && T.q.length) {
+      const [idx, pick] = T.q[0];
+      try {
+        const r = await rpcRetry('answerTest', [APP.sid, T.set, idx, pick], 3);
+        if (r && (r.ok || r.reason === 'NO_SESSION')) T.q.shift(); else await sleep(1500);
+      } catch (e) { setSync('err'); await sleep(2500); }
+    }
+    setSync('ok');
+  } finally { T.flushing = false; }
+}
+const _submitTest = submitTest;
+submitTest = async function () {
+  clearInterval(T.tick);
+  if ((T.q && T.q.length) || T.flushing) {
+    $('#test-body').innerHTML = '<div class="card center"><div class="spin"></div><p>กำลังบันทึกคำตอบข้อสุดท้าย…</p></div>';
+    flushAnswers();
+    while ((T.q && T.q.length) || T.flushing) await sleep(250);
+  }
+  return _submitTest();
+};
+
 /* ---------- หอไตร: ชั้นสอบกลางภาค/ปลายภาค ---------- */
 function exState(set) { const k = set === 'FIN' ? 'fin' : 'mid'; return APP.state[k] && APP.state[k].att && APP.state[k].att.length ? APP.state[k] : null; }
 function examFloor(set) {

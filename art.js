@@ -219,6 +219,66 @@ function sceneBG(scene, night) {
   </svg>`;
 }
 
+/* ---------- หน้าใส่รหัสนักเรียน (ออกแบบใหม่) ----------
+ * คง id เดิมทุกตัว (sid, btn-login, btn-teacher, login-frame, sid-dots, login-say, login-crest, login-char) ให้สคริปต์หลักใช้ได้เหมือนเดิม */
+(function buildLogin() {
+  const css = `
+  #scr-login{padding:4px 0 24px}
+  .lg-wrap{max-width:460px;margin:0 auto}
+  .lg-hero{position:relative;height:clamp(170px,44vw,215px);border-radius:28px;overflow:hidden;box-shadow:0 12px 30px rgba(31,111,178,.22)}
+  .lg-hero .sc-bg{position:absolute;inset:0;width:100%;height:100%}
+  .lg-hero .lg-nong{position:absolute;right:6%;bottom:2px;filter:drop-shadow(0 6px 6px rgba(60,30,0,.2))}
+  .lg-crest-wrap{position:relative;width:116px;height:116px;margin:-58px auto 0;z-index:2}
+  .lg-crest-wrap::before{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#5BB0EA,#F08DBA,#FFD452,#5BB0EA);animation:spin 8s linear infinite}
+  .lg-crest{position:absolute;inset:5px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(31,111,178,.25)}
+  .lg-crest img,.lg-crest .crest{width:88px;height:88px}
+  .lg-head{text-align:center;margin-top:8px}
+  #scr-login .mote{display:none}
+  .lg-title{margin:0;font-family:var(--fh);font-weight:600;font-size:clamp(30px,8vw,40px);line-height:1.15;
+    background:linear-gradient(90deg,#1F6FB2,#C2457F 60%,#D99A1E);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lg-sub{margin:4px 0 0;color:var(--ink2);font-size:var(--fs-small)}
+  .lg-badges{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:10px 0 0}
+  .lg-badges span{font-size:13px;padding:3px 10px;border-radius:99px;background:#fff;border:1px solid #F4C6DB;color:#A3285E;white-space:nowrap}
+  .lg-badges span:nth-child(2){border-color:#BFE0F7;color:#1F6FB2}.lg-badges span:nth-child(3){border-color:#F3DC8F;color:#8A6410}
+  .lg-talk{margin:14px 2px 6px}
+  .lg-talk #login-char{display:none}
+  .lg-talk .bubble{font-size:15.5px;padding:10px 14px;border-radius:16px;border-color:#F4C6DB;background:#FFF8FB;text-align:center}
+  .lg-talk .bubble::before{display:none}
+  #login-frame{margin:8px 0 10px}#login-frame>.card{padding:18px 16px 16px}
+  .lg-label{display:flex;align-items:center;gap:6px;font-family:var(--fh);font-weight:500;color:var(--navy);margin-bottom:8px}
+  .lg-field{position:relative}
+  .lg-field svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#9AB3CC}
+  #scr-login .id-input{padding:14px 14px 14px 48px;font-size:clamp(22px,6vw,28px);letter-spacing:3px;border-radius:16px;background:#F7FBFF;border:2px solid #D6E6F5;text-align:left}
+  #scr-login .id-input::placeholder{color:#B8C7D6;letter-spacing:1px}
+  #scr-login .id-input:focus{background:#fff;border-color:#E5508F}
+  #btn-login{min-height:56px;font-size:20px;border-radius:16px;background:linear-gradient(90deg,#E5508F,#F07AA8 55%,#F6A23C);box-shadow:0 5px 0 #BE3A73}
+  .lg-spin{width:18px;height:18px;border-radius:50%;border:3px solid rgba(255,255,255,.45);border-top-color:#fff;animation:spin .8s linear infinite;display:inline-block}
+  .lg-quick{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 12px;padding:10px 12px;border-radius:14px;border:2px dashed #BFE0F7;background:#F2F9FF;color:var(--navy);font-family:var(--fb);font-size:15px;text-align:left}
+  .lg-quick b{font-family:var(--fh);font-weight:500;display:block;font-size:16px}
+  .lg-foot{text-align:center;margin-top:6px}.lg-foot small{display:block;color:var(--ink2);font-size:12.5px}
+  #scr-login .journey{display:none}`;
+  const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+  const sec = document.getElementById('scr-login'); if (!sec) return;
+  const me = (() => { try { return JSON.parse(localStorage.getItem('hotrai:me') || 'null'); } catch (e) { return null; } })();
+  sec.innerHTML = `<div class="lg-wrap">
+    <div class="lg-hero">${sceneBG('ลานวัด', false)}<div class="lg-nong">${nongSVG('happy', 118)}</div></div>
+    <div class="lg-crest-wrap"><div class="lg-crest" id="login-crest"></div></div>
+    <div class="lg-head"><h1 class="lg-title">หอไตรนามศัพท์</h1><p class="lg-sub">เกมภาษาบาลี บ21202 · นามและอัพยยศัพท์</p>
+      <div class="lg-badges"><span>๒๐ ชั้นหอไตร</span><span>เก็บดาว ชนะยักษ์</span><span>รับเกียรติบัตร</span></div></div>
+    <div class="lg-talk"><div id="login-char"></div><div class="bubble"><b class="nm">น้องนามศัพท์</b><span id="login-say">กรอกรหัสประจำตัวนักเรียนเพื่อเข้าหอไตร</span></div></div>
+    <div class="glow-frame" id="login-frame"><div class="card">
+      ${me && me.name ? `<button class="lg-quick" id="lg-quick" type="button">${nongSVG('wow', 40)}<span><b>เข้าเล่นต่อ</b>${esc(me.name)} · รหัส ${esc(me.id)}</span></button>` : ''}
+      <label class="lg-label" for="sid">${ui('user', 18)} รหัสประจำตัวนักเรียน</label>
+      <div class="lg-field">${ui('key', 22)}<input class="id-input" id="sid" type="text" inputmode="numeric" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="เช่น 70690001"></div>
+      <div class="id-dots" id="sid-dots" aria-hidden="true"></div>
+      <button class="btn wide shine" id="btn-login">${ui('door', 22)} เข้าสู่หอไตร</button>
+    </div></div>
+    <div class="lg-foot"><button class="teacher-link" id="btn-teacher">สำหรับครู / ผู้ดูแลระบบ</button><small>โรงเรียนพระปริยัติธรรมวัดธรรมมงคล แผนกสามัญศึกษา</small></div>
+  </div>`;
+  const q = document.getElementById('lg-quick');
+  if (q) q.onclick = () => { document.getElementById('sid').value = me.id; sidDots(); doLogin(); };
+})();
+
 /* ---------- ให้ตัวละครกระโดด/ส่ายเมื่อตอบถูก/ผิด และยักษ์สะดุ้งเมื่อโดนตี ---------- */
 const _markResult = markResult;
 markResult = function (it, good, key) {
